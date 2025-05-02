@@ -29,9 +29,8 @@ else:
         st.subheader(f"🧭 Junction {st.session_state.current_junction + 1} - {junction['name']}")
 
         # Determine direction to give green
-        sorted_dirs = sorted(junction['vehicles'].items(), key=lambda x: -x[1])
-        directions = [d for d, c in sorted_dirs if c > 0]
-        green_order = directions if directions else ["None"]
+        sorted_dirs = sorted([(d, c) for d, c in junction['vehicles'].items() if c > 0], key=lambda x: x[1])
+green_order = [d for d, c in sorted_dirs] if sorted_dirs else ["None"]
 
         st.markdown(f"**Vehicle counts:** {junction['vehicles']}")
         st.markdown(f"✅ **Green light order**: {', '.join(green_order)}")
