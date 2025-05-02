@@ -2,52 +2,64 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 
-st.set_page_config(layout="wide")
-st.title("🚦 Dynamic Traffic Light Simulation on Chandigarh Map")
+# Set page configuration
+st.set_page_config(page_title="Chandigarh Traffic Light Simulation", layout="wide")
 
-# Dummy data: replace or expand as needed
+# Dummy junction data
 junctions = [
-    {"name": "Sector 42", "lat": 30.7133, "lon": 76.7366, "vehicles": {"A": 50, "B": 20, "C": 2, "D": 80}},
-    {"name": "Sector 41", "lat": 30.7195, "lon": 76.7427, "vehicles": {"A": 10, "B": 0, "C": 30, "D": 25}},
-    {"name": "Sector 40", "lat": 30.7260, "lon": 76.7471, "vehicles": {"A": 5, "B": 15, "C": 0, "D": 8}},
-    {"name": "Sector 39", "lat": 30.7328, "lon": 76.7513, "vehicles": {"A": 12, "B": 30, "C": 9, "D": 0}},
-    {"name": "Sector 21", "lat": 30.7355, "lon": 76.7766, "vehicles": {"A": 0, "B": 18, "C": 40, "D": 10}},
+    {
+        "name": "Junction 1 - Sector 42",
+        "location": [30.7170, 76.7380],
+        "vehicles": {'A': 15, 'B': 0, 'C': 20, 'D': 10}
+    },
+    {
+        "name": "Junction 2 - Sector 43",
+        "location": [30.7260, 76.7650],
+        "vehicles": {'A': 10, 'B': 0, 'C': 30, 'D': 25}
+    },
+    {
+        "name": "Junction 3 - Sector 35",
+        "location": [30.7352, 76.7732],
+        "vehicles": {'A': 5, 'B': 2, 'C': 1, 'D': 4}
+    },
 ]
 
-# Session state setup
-if 'simulation_started' not in st.session_state:
-    st.session_state.simulation_started = False
-    st.session_state.current_junction = 0
+# Title
+st.title("🚦 Dynamic Traffic Light Simulation on Chandigarh Map")
 
-# Show start or next button
-if not st.session_state.simulation_started:
-    if st.button("🚀 Start Simulation"):
-        st.session_state.simulation_started = True
+# Mode
+mode = st.radio("Select simulation mode:", ("Step-by-step", "Show all junctions"))
+
+# Function to determine green light order
+def get_green_order(vehicle_data):
+    # Exclude 0 counts for fairness
+    filtered = {k: v for k, v in vehicle_data.items() if v > 0}
+    return sorted(filtered, key=filtered.get)
+
+# Step-by-step mode
+if mode == "Step-by-step":
+    index = st.slider("Select junction:", 0, len(junctions) - 1)
+    junction = junctions[index]
+
+    st.subheader(junction["name"])
+    m = folium.Map(location=junction["location"], zoom_start=16)
+    folium.Marker(junction["location"], popup="Traffic Junction", icon=folium.Icon(color="red")).add_to(m)
+
+    st.markdown(f"**Vehicle counts:** {junction['vehicles']}")
+    green_order = get_green_order(junction["vehicles"])
+    st.markdown(f"✅ **Green light order:** {', '.join(green_order)}")
+
+    st_folium(m, width=700, height=500)
+
+# Show all at once
 else:
-    if st.session_state.current_junction < len(junctions):
-        junction = junctions[st.session_state.current_junction]
-        st.subheader(f"🧭 Junction {st.session_state.current_junction + 1} - {junction['name']}")
+    m = folium.Map(location=[30.7333, 76.7794], zoom_start=13)
+    for junc in junctions:
+        folium.Marker(junc["location"], popup=junc["name"], icon=folium.Icon(color="red")).add_to(m)
+    st_folium(m, width=900, height=500)
 
-        # Determine direction to give green
-        sorted_dirs = sorted([(d, c) for d, c in junction['vehicles'].items() if c > 0], key=lambda x: x[1])
-green_order = [d for d, c in sorted_dirs] if sorted_dirs else ["None"]
-
-        st.markdown(f"**Vehicle counts:** {junction['vehicles']}")
-        st.markdown(f"✅ **Green light order**: {', '.join(green_order)}")
-
-        # Show map
-        m = folium.Map(location=[junction['lat'], junction['lon']], zoom_start=16)
-        folium.Marker(
-            [junction['lat'], junction['lon']],
-            popup=f"{junction['name']} - Green: {green_order[0]}",
-            icon=folium.Icon(color='red', icon='circle'),
-        ).add_to(m)
-        st_folium(m, width=700, height=500)
-
-        if st.button("➡️ Next Junction"):
-            st.session_state.current_junction += 1
-    else:
-        st.success("✅ Simulation complete! No more junctions.")
-        if st.button("🔁 Restart"):
-            st.session_state.simulation_started = False
-            st.session_state.current_junction = 0
+    for junc in junctions:
+        st.subheader(junc["name"])
+        st.markdown(f"**Vehicle counts:** {junc['vehicles']}")
+        green_order = get_green_order(junc["vehicles"])
+        st.markdown(f"✅ **Green light order:** {', '.join(green_order)}")
